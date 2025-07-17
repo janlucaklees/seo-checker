@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 
-const fs = require("fs");
-const path = require("path");
-const { program } = require("commander");
-const ignore = require("ignore");
-const fg = require("fast-glob");
-const cheerio = require("cheerio");
+import fs from "fs";
+import path from "path";
+import { Command } from "commander";
+import ignore from "ignore";
+import fg from "fast-glob";
+import Cheerio from "cheerio";
 import chalk from "chalk";
+
+const program = new Command();
 
 program
   .name("seo-tech-check")
@@ -90,7 +92,7 @@ program
       let content;
       try {
         content = fs.readFileSync(file, "utf8");
-      } catch (e) {
+      } catch {
         continue;
       }
       const relPath = path.relative(base, file);
@@ -139,8 +141,8 @@ program
         socialTests.twitterDescription = true;
 
       // Images via Cheerio
-      const $ = cheerio.load(content, { xmlMode: false });
-      $("img").each((i, el) => {
+      const $ = Cheerio.load(content);
+      $("img").each((_, el) => {
         const alt = $(el).attr("alt");
         if (!alt || alt.trim() === "") {
           imagesMissing.add(relPath);
@@ -163,7 +165,6 @@ program
       } else {
         console.log(`${warnIcon} ${chalk.bold(name)}`);
       }
-      // List details if incomplete or failed
       if (passed < keys.length) {
         for (const key of keys) {
           const icon = tests[key] ? okIcon : failIcon;
@@ -193,4 +194,4 @@ program
     }
   });
 
-program.parse(process.argv);
+program.parseAsync(process.argv);

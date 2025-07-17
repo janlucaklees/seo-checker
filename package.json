@@ -1,5 +1,6 @@
 {
   "name": "seo-checker",
+  "type": "module",
   "private": true,
   "devDependencies": {
     "@types/bun": "latest"
@@ -9,11 +10,9 @@
   },
   "dependencies": {
     "chalk": "^5.4.1",
-    "cheerio": "^1.1.0",
+    "cheerio": "1.0.0-rc.12",
     "commander": "^14.0.0",
     "fast-glob": "^3.3.3",
-    "fs": "^0.0.1-security",
-    "ignore": "^7.0.5",
-    "path": "^0.12.7"
+    "ignore": "^7.0.5"
   }
 }
