@@ -1,0 +1,19 @@
+{
+  "name": "seo-checker",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "chalk": "^5.4.1",
+    "cheerio": "^1.1.0",
+    "commander": "^14.0.0",
+    "fast-glob": "^3.3.3",
+    "fs": "^0.0.1-security",
+    "ignore": "^7.0.5",
+    "path": "^0.12.7"
+  }
+}
