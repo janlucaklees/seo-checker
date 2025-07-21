@@ -67,24 +67,24 @@ program
 
     // Regex definitions
     const re = {
-      doctype: /<!DOCTYPE\s+html>/i,
-      htmlLang: /<html[^>]*\slang=['"].+?['"]/i,
-      titleTag: /<title>.*?<\/title>/i,
-      metaTitle: /<meta[^>]*name=['"]title['"][^>]*>/i,
-      metaDescription: /<meta[^>]*name=['"]description['"][^>]*>/i,
-      metaCharset: /<meta\s+charset=['"][^'"]+['"]/i,
-      metaRobots: /<meta[^>]*name=['"]robots['"][^>]*>/i,
-      canonical: /<link[^>]*rel=['"]canonical['"][^>]*>/i,
+      doctype: /<!DOCTYPE\s+html\b/i,
+      htmlLang: /<html\b[^>]*\slang=\s*['"][^'"]+/i,
+      titleTag: /<title\b/i,
+      metaTitle: /<meta\b[^>]*name=\s*['"]title['"]/i,
+      metaDescription: /<meta\b[^>]*name=\s*['"]description['"]/i,
+      metaCharset: /<meta\b[^>]*charset=/i,
+      metaRobots: /<meta\b[^>]*name=\s*['"]robots['"]/i,
+      canonical: /<link\b[^>]*rel=\s*['"]canonical['"]/i,
       favicons:
-        /<link[^>]*rel=['"](?:icon|apple-touch-icon|shortcut icon|manifest)['"][^>]*>|<meta[^>]*name=['"]msapplication-TileImage['"][^>]*>/i,
-      inlineSchema: /itemscope[^>]*itemtype=/i,
-      jsonld: /<script[^>]*type=['"]application\/ld\+json['"][\s\S]*?>/i,
-      ogTitle: /<meta[^>]*property=['"]og:title['"][^>]*>/i,
-      ogDescription: /<meta[^>]*property=['"]og:description['"][^>]*>/i,
-      ogImage: /<meta[^>]*property=['"]og:image['"][^>]*>/i,
-      twitterCard: /<meta[^>]*name=['"]twitter:card['"][^>]*>/i,
-      twitterTitle: /<meta[^>]*name=['"]twitter:title['"][^>]*>/i,
-      twitterDescription: /<meta[^>]*name=['"]twitter:description['"][^>]*>/i,
+        /<link\b[^>]*rel=\s*['"](?:icon|apple-touch-icon|shortcut icon|manifest)['"]|<meta\b[^>]*name=\s*['"]msapplication-TileImage['"]/i,
+      inlineSchema: /<[^>]+itemscope[^>]+itemtype=/i,
+      jsonld: /<script\b[^>]*type=\s*['"]application\/ld\+json['"]/i,
+      ogTitle: /<meta\b[^>]*property=\s*['"]og:title['"]/i,
+      ogDescription: /<meta\b[^>]*property=\s*['"]og:description['"]/i,
+      ogImage: /<meta\b[^>]*property=\s*['"]og:image['"]/i,
+      twitterCard: /<meta\b[^>]*name=\s*['"]twitter:card['"]/i,
+      twitterTitle: /<meta\b[^>]*name=\s*['"]twitter:title['"]/i,
+      twitterDescription: /<meta\b[^>]*name=\s*['"]twitter:description['"]/i,
     };
 
     // Scan files
