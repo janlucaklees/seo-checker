@@ -8,6 +8,148 @@ import fg from "fast-glob";
 import Cheerio from "cheerio";
 import chalk from "chalk";
 
+// Define tests
+const tests = [
+  {
+    name: "Doctype",
+    group: "Meta-Data",
+    failText: "No Doctype was found!",
+    regex: /<!DOCTYPE\s+html\b/i,
+  },
+  {
+    name: "HTML Lang",
+    group: "Meta-Data",
+    failText: "No <html lang> attribute found!",
+    regex: /<html\b[^>]*\slang=\s*['"][^'"]+/i,
+  },
+  {
+    name: "Title Tag",
+    group: "Meta-Data",
+    failText: "No <title> tag found!",
+    regex: /<title\b/i,
+  },
+  {
+    name: "Meta Description",
+    group: "Meta-Data",
+    failText: 'No <meta name="description"> tag found!',
+    regex: /<meta\b[^>]*name=\s*['"]description['"]/i,
+  },
+  {
+    name: "Meta Viewport",
+    group: "Meta-Data",
+    failText: 'No <meta name="viewport"> tag found!',
+    regex: /<meta\b[^>]*name=\s*['"]viewport['"]/i,
+  },
+  {
+    name: "Meta Charset",
+    group: "Meta-Data",
+    failText: "No <meta charset> tag found!",
+    regex: /<meta\b[^>]*charset=/i,
+  },
+  {
+    name: "Meta Robots",
+    group: "Meta-Data",
+    failText: 'No <meta name="robots"> tag found!',
+    regex: /<meta\b[^>]*name=\s*['"]robots['"]/i,
+  },
+  {
+    name: "Canonical Link",
+    group: "Meta-Data",
+    failText: 'No <link rel="canonical"> tag found!',
+    regex: /<link\b[^>]*rel=\s*['"]canonical['"]/i,
+  },
+  {
+    name: "Favicons",
+    group: "Meta-Data",
+    failText: "No favicon or related icons found!",
+    regex:
+      /<link\b[^>]*rel=\s*['"](?:icon|apple-touch-icon|shortcut icon|manifest)['"]|<meta\b[^>]*name=\s*['"]msapplication-TileImage['"]/i,
+  },
+  {
+    name: "Inline Schema.org",
+    group: "Schema.org",
+    failText: "No itemscope+itemtype attributes found!",
+    regex: /<[^>]+itemscope[^>]+itemtype=/i,
+  },
+  {
+    name: "JSON-LD Schema",
+    group: "Schema.org",
+    failText: 'No <script type="application/ld+json"> found!',
+    regex: /<script\b[^>]*type=\s*['"]application\/ld\+json['"]/i,
+  },
+  {
+    name: "OG Title",
+    group: "Social-Media Tags",
+    failText: "No Open Graph title (og:title) tag found!",
+    regex: /<meta\b[^>]*property=\s*['"]og:title['"]/i,
+  },
+  {
+    name: "OG Description",
+    group: "Social-Media Tags",
+    failText: "No Open Graph description (og:description) tag found!",
+    regex: /<meta\b[^>]*property=\s*['"]og:description['"]/i,
+  },
+  {
+    name: "OG Image",
+    group: "Social-Media Tags",
+    failText: "No Open Graph image (og:image) tag found!",
+    regex: /<meta\b[^>]*property=\s*['"]og:image['"]/i,
+  },
+  {
+    name: "Twitter Card",
+    group: "Social-Media Tags",
+    failText: "No Twitter card (twitter:card) tag found!",
+    regex: /<meta\b[^>]*name=\s*['"]twitter:card['"]/i,
+  },
+  {
+    name: "Twitter Title",
+    group: "Social-Media Tags",
+    failText: "No Twitter title (twitter:title) tag found!",
+    regex: /<meta\b[^>]*name=\s*['"]twitter:title['"]/i,
+  },
+  {
+    name: "Twitter Description",
+    group: "Social-Media Tags",
+    failText: "No Twitter description (twitter:description) tag found!",
+    regex: /<meta\b[^>]*name=\s*['"]twitter:description['"]/i,
+  },
+  {
+    name: "Frameset",
+    group: "Misc",
+    failText: "Framesets are present!",
+    // We want to test for the absence of a frameset.
+    test: (file, content) => !/<frameset\b/i.test(content),
+  },
+  {
+    name: "Robots.txt",
+    group: "Misc",
+    failText: "No robots.txt found!",
+    test: (file) => path.basename(file) === "robots.txt",
+  },
+  {
+    name: "Alt-Tags",
+    group: "Images",
+    failText: "Missing alt text in: {file}",
+    aggregate: (file, content) => {
+      let hasMissingAlt = false;
+
+      // Images via Cheerio
+      const $ = Cheerio.load(content);
+      $("img").each((_, el) => {
+        if (hasMissingAlt) {
+          return;
+        }
+
+        const alt = $(el).attr("alt");
+
+        hasMissingAlt = alt === undefined || alt === "";
+      });
+
+      return hasMissingAlt;
+    },
+  },
+];
+
 const program = new Command();
 
 program
@@ -27,12 +169,15 @@ program
     }
 
     // Find files
-    const entries = await fg(["**/*.html", "**/*.twig", "**/*.php"], {
-      cwd: base,
-      onlyFiles: true,
-      dot: true,
-      absolute: true,
-    });
+    const entries = await fg(
+      ["**/*.html", "**/*.twig", "**/*.php", "**/robots.txt"],
+      {
+        cwd: base,
+        onlyFiles: true,
+        dot: true,
+        absolute: true,
+      },
+    );
     const files = entries.filter((f) => {
       const rel = path.relative(base, f);
       return ig.filter([rel]).length > 0;
@@ -42,156 +187,86 @@ program
       process.exit(1);
     }
 
-    // Initialize subtests
-    const metaTests = {
-      doctype: false,
-      htmlLang: false,
-      titleTag: false,
-      metaTitle: false,
-      metaDescription: false,
-      metaCharset: false,
-      metaRobots: false,
-      canonical: false,
-      favicons: false,
-    };
-    const schemaTests = { inline: false, jsonld: false };
-    const socialTests = {
-      ogTitle: false,
-      ogDescription: false,
-      ogImage: false,
-      twitterCard: false,
-      twitterTitle: false,
-      twitterDescription: false,
-    };
-    const imagesMissing = new Set();
-
-    // Regex definitions
-    const re = {
-      doctype: /<!DOCTYPE\s+html\b/i,
-      htmlLang: /<html\b[^>]*\slang=\s*['"][^'"]+/i,
-      titleTag: /<title\b/i,
-      metaTitle: /<meta\b[^>]*name=\s*['"]title['"]/i,
-      metaDescription: /<meta\b[^>]*name=\s*['"]description['"]/i,
-      metaCharset: /<meta\b[^>]*charset=/i,
-      metaRobots: /<meta\b[^>]*name=\s*['"]robots['"]/i,
-      canonical: /<link\b[^>]*rel=\s*['"]canonical['"]/i,
-      favicons:
-        /<link\b[^>]*rel=\s*['"](?:icon|apple-touch-icon|shortcut icon|manifest)['"]|<meta\b[^>]*name=\s*['"]msapplication-TileImage['"]/i,
-      inlineSchema: /<[^>]+itemscope[^>]+itemtype=/i,
-      jsonld: /<script\b[^>]*type=\s*['"]application\/ld\+json['"]/i,
-      ogTitle: /<meta\b[^>]*property=\s*['"]og:title['"]/i,
-      ogDescription: /<meta\b[^>]*property=\s*['"]og:description['"]/i,
-      ogImage: /<meta\b[^>]*property=\s*['"]og:image['"]/i,
-      twitterCard: /<meta\b[^>]*name=\s*['"]twitter:card['"]/i,
-      twitterTitle: /<meta\b[^>]*name=\s*['"]twitter:title['"]/i,
-      twitterDescription: /<meta\b[^>]*name=\s*['"]twitter:description['"]/i,
-    };
-
     // Scan files
-    for (const file of files) {
+    files.forEach((file) => {
       let content;
       try {
         content = fs.readFileSync(file, "utf8");
       } catch {
-        continue;
+        return;
       }
-      const relPath = path.relative(base, file);
+      const rel = path.relative(base, file);
 
-      // Meta-data via regex
-      if (!metaTests.doctype && re.doctype.test(content))
-        metaTests.doctype = true;
-      if (!metaTests.htmlLang && re.htmlLang.test(content))
-        metaTests.htmlLang = true;
-      if (!metaTests.titleTag && re.titleTag.test(content))
-        metaTests.titleTag = true;
-      if (!metaTests.metaTitle && re.metaTitle.test(content))
-        metaTests.metaTitle = true;
-      if (!metaTests.metaDescription && re.metaDescription.test(content))
-        metaTests.metaDescription = true;
-      if (!metaTests.metaCharset && re.metaCharset.test(content))
-        metaTests.metaCharset = true;
-      if (!metaTests.metaRobots && re.metaRobots.test(content))
-        metaTests.metaRobots = true;
-      if (!metaTests.canonical && re.canonical.test(content))
-        metaTests.canonical = true;
-      if (!metaTests.favicons && re.favicons.test(content))
-        metaTests.favicons = true;
+      tests.forEach((test) => {
+        // Skip passed tests
+        if (test.hasPassed && !test.aggregate) {
+          return;
+        }
 
-      // Schema.org
-      if (!schemaTests.inline && re.inlineSchema.test(content))
-        schemaTests.inline = true;
-      if (!schemaTests.jsonld && re.jsonld.test(content))
-        schemaTests.jsonld = true;
+        // Check for aggregate tests.
+        if (test.aggregate) {
+          if (!test.failedFiles) {
+            test.hasPassed = true;
+            test.failedFiles = [];
+          }
 
-      // Social media
-      if (!socialTests.ogTitle && re.ogTitle.test(content))
-        socialTests.ogTitle = true;
-      if (!socialTests.ogDescription && re.ogDescription.test(content))
-        socialTests.ogDescription = true;
-      if (!socialTests.ogImage && re.ogImage.test(content))
-        socialTests.ogImage = true;
-      if (!socialTests.twitterCard && re.twitterCard.test(content))
-        socialTests.twitterCard = true;
-      if (!socialTests.twitterTitle && re.twitterTitle.test(content))
-        socialTests.twitterTitle = true;
-      if (
-        !socialTests.twitterDescription &&
-        re.twitterDescription.test(content)
-      )
-        socialTests.twitterDescription = true;
+          if (test.aggregate(file, content)) {
+            test.hasPassed = false;
+            test.failedFiles.push(file);
+          }
 
-      // Images via Cheerio
-      const $ = Cheerio.load(content);
-      $("img").each((_, el) => {
-        const alt = $(el).attr("alt");
-        if (!alt || alt.trim() === "") {
-          imagesMissing.add(relPath);
+          return;
+        }
+
+        // Check for test by callback.
+        if (test.test) {
+          test.hasPassed = test.test(file, content);
+          return;
+        }
+
+        // Check for test by regex
+        if (test.regex) {
+          test.hasPassed = test.regex.test(content);
+
+          return;
         }
       });
-    }
+    });
 
-    // Helper for printing groups
-    const okIcon = chalk.green("✅");
-    const warnIcon = chalk.yellow("⚠️");
-    const failIcon = chalk.red("❌");
+    // Output helpers
+    const pass = chalk.green("✅");
+    const warn = chalk.yellow("⚠️");
+    const fail = chalk.red("❌");
 
-    function printGroup(name, tests) {
-      const keys = Object.keys(tests);
-      const passed = keys.filter((k) => tests[k]).length;
-      if (passed === keys.length) {
-        console.log(`${okIcon} ${chalk.bold(name)}`);
-      } else if (passed === 0) {
-        console.log(`${failIcon} ${chalk.bold(name)}`);
-      } else {
-        console.log(`${warnIcon} ${chalk.bold(name)}`);
-      }
-      if (passed < keys.length) {
-        for (const key of keys) {
-          const icon = tests[key] ? okIcon : failIcon;
-          console.log(`  ${icon} ${key}`);
-        }
-      }
-    }
+    const groups = new Set(tests.map((test) => test.group));
 
-    // Print results
-    console.log(chalk.underline("SEO Audit Report:"));
-    printGroup("Meta-Data", metaTests);
-    printGroup("Schema.org", schemaTests);
-    printGroup("Social-Media Tags", socialTests);
+    groups.forEach((groupName) => {
+      const groupTests = tests.filter((test) => test.group === groupName);
+      const hasGroupPassed = groupTests.every((test) => test.hasPassed);
+      const hasGroupFailed = groupTests.every((test) => !test.hasPassed);
 
-    // Images group
-    if (imagesMissing.size === 0) {
       console.log(
-        `${okIcon} ${chalk.bold("Images")} (all <img> tags have alt attributes)`,
+        `  ${hasGroupPassed ? pass : hasGroupFailed ? fail : warn} ${groupName}`,
       );
-    } else {
-      console.log(
-        `${warnIcon} ${chalk.bold("Images")} (missing alt attributes)`,
-      );
-      for (const file of imagesMissing) {
-        console.log(`  ${failIcon} ${file}`);
+
+      if (!hasGroupPassed) {
+        groupTests.forEach((test) => {
+          if (test.hasPassed) {
+            console.log(`    ${pass} ${test.name}`);
+          } else {
+            if (test.aggregate) {
+              test.failedFiles.forEach((file) => {
+                console.log(
+                  `    ${fail} ${test.failText.replace("{file}", file)}`,
+                );
+              });
+            } else {
+              console.log(`    ${fail} ${test.failText}`);
+            }
+          }
+        });
       }
-    }
+    });
   });
 
 program.parseAsync(process.argv);
