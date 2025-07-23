@@ -1,15 +1,11 @@
-# seo-checker
+# SEO-Checker
 
-To install dependencies:
+by Jan-Luca Klees
 
-```bash
-bun install
-```
+## Quickstart
 
-To run:
+Run `bun install` to install all dependencies.
 
-```bash
-bun run 
-```
+Run `make build` to compile the tool into a single `.mjs` file. Currently optimized for Node.js
 
-This project was created using `bun init` in bun v1.2.18. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
+Run `./seo-checker.mjs /path/to/repository/root` to check the how much technical SEO is implemented in the given project.
