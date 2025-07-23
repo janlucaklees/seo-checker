@@ -233,6 +233,11 @@ program
       });
     });
 
+    // Output
+    console.log(`SEO Checker by Jan-Luca Klees`);
+    console.log(``);
+    console.log(`Check Results:`);
+
     // Output helpers
     const pass = chalk.green("✅");
     const warn = chalk.yellow("⚠️");
